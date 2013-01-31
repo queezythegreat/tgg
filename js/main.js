@@ -1,318 +1,195 @@
 require.config({
     paths: {
-        kick: 'common/kick-debug'
-    }
+        three: 'three'
+    },
 });
 
-require(['kick'],
-function (kick) {
+require(['three/three.min',
+         'three/Detector',
+         'three/libs/stats.min',
+         'three/loaders/ColladaLoader',
+         'three/controls/TrackballControls'], function () {
 
-var vec3 = kick.math.Vec3;
-var aabb = kick.math.Aabb;
-var objectCenter = vec3.create();
-var sphericalCoordinates = vec3.clone([10, 0, 0]); // radius, polar, elevation
+if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 
-function createDummyUVsIfNotExist() {
-    var mesh = meshRenderer.mesh,
-        meshData = mesh.meshData;
-    if (!meshData.uv1){
-        meshData.createUv1();
-        mesh.meshData = meshData;
-        meshRenderer.mesh = mesh;
-    }
-}
+var container, stats;
 
-function recalculateNormals() {
-    var mesh = meshRenderer.mesh,
-        meshData = mesh.meshData;
-    if (!meshData.interleavedArrayFormat.normal){
-        console.log("Recalculate normals");
-        meshData.recalculateNormals();
-        mesh.meshData = meshData;
-    }
-}
-
-function destroyAllMeshRenderersInScene() {
-    var scene = engine.activeScene,
-        i,
-        gameObject;
-    for (i = scene.getNumberOfGameObjects() - 1; i >= 0; i--) {
-        gameObject = scene.getGameObject(i);
-        if (gameObject.getComponentOfType(kick.scene.MeshRenderer)) {
-            gameObject.destroy();
-        }
-    }
-}
-
-function load(content, url, func, rotateAroundX) {
-    //destroyAllMeshRenderersInScene();
-
-    var createdObject = func(content, engine.activeScene, rotateAroundX),
-        gameObjectsCreated = createdObject.gameObjects,
-        boundingBox = aabb.create(),
-        i,
-        gameObject,
-        meshRendererNew,
-        meshAabb,
-        aabbTransformed,
-        materials,
-        j,
-        length,
-        lengthPlusOffset;
-    for (i = 0; i < gameObjectsCreated.length; i++) {
-        gameObject = gameObjectsCreated[i];
-        meshRendererNew = gameObject.getComponentOfType(kick.scene.MeshRenderer);
-        if (meshRendererNew) {
-            meshAabb = meshRendererNew.mesh.aabb;
-            aabbTransformed = aabb.transform(meshAabb, meshAabb, gameObject.transform.getGlobalMatrix());
-            aabb.merge(boundingBox, boundingBox, aabbTransformed);
-            console.log(boundingBox);
-            materials = [];
-            for (j = meshRendererNew.mesh.meshData.subMeshes.length - 1; j >= 0; j--) {
-                materials[j] = material;
-            }
-            meshRendererNew.materials = materials;
-            meshRenderer = meshRendererNew;
-            recalculateNormals();
-            createDummyUVsIfNotExist();
-        }
-    }
-    aabb.center(objectCenter, boundingBox);
-    length = vec3.length(aabb.diagonal(vec3.create(), boundingBox)) * 0.5;
-    lengthPlusOffset = length * 2.5;
-
-    sphericalCoordinates[0] = lengthPlusOffset;
-}
-function loadKickJSModel(fileContent) {
-    destroyAllMeshRenderersInScene();
-    var meshData = new kick.mesh.MeshData(),
-        gameObject,
-        mesh,
-        materials,
-        j,
-        meshRenderer,
-        boundingBox,
-        length,
-        lengthPlusOffset;
-    meshData.deserialize(fileContent);
-    gameObject = engine.activeScene.createGameObject({name: meshData.name});
-    mesh = new kick.mesh.Mesh({
-        meshData: meshData
-    });
-    materials = [];
-    for (j = meshData.subMeshes.length - 1; j >= 0; j--) {
-        materials[j] = material;
-    }
-
-    meshRenderer = new kick.scene.MeshRenderer({
-        mesh: mesh,
-        materials: materials
-    });
-    gameObject.addComponent(meshRenderer);
-    boundingBox = mesh.aabb;
-    aabb.center(objectCenter, boundingBox);
-    length = vec3.length(aabb.diagonal(vec3.create(), boundingBox)) * 0.5;
-    lengthPlusOffset = length * 2.5;
-
-    sphericalCoordinates[0] = lengthPlusOffset;
-}
-
-function initLights() {
-    var ambientlightGameObject = engine.activeScene.createGameObject();
-    ambientlightGameObject.name = "ambient light";
-    var ambientLight = new kick.scene.Light({type: kick.scene.Light.TYPE_AMBIENT});
-    ambientLight.color = [0.1, 0.1, 0.1];
-    ambientlightGameObject.addComponent(ambientLight);
-
-    var lightGameObject = engine.activeScene.createGameObject();
-    lightGameObject.name = "directional light";
-    var light = new kick.scene.Light(
-        {
-            type: kick.scene.Light.TYPE_DIRECTIONAL,
-            color:[1,1,1],
-            intensity:1
-        }
-    );
-    lightGameObject.transform.position = [1,1,1];
-    lightGameObject.addComponent(light);
-    lightGameObject.addComponent(new LightRotatorComponent());
-}
-
-function loadObj(url) {
-    var oReq = new XMLHttpRequest();
-    function handler() {
-        if (oReq.readyState === 4) { // complete
-            if (oReq.status === 200) {
-                var txt = oReq.responseText;
-                load(txt, url, kick.importer.ObjImporter.import);
-            }
-        }
-    }
-    oReq.open("GET", url, true);
-    oReq.onreadystatechange = handler;
-    oReq.send();
-}
-
-function loadCollada(url) {
-    var oReq = new XMLHttpRequest();
-    function handler() {
-        if (oReq.readyState === 4) { // complete
-                console.log("Got: " + url + " Status: " + oReq.status);
-            if (oReq.status === 200) {
-                var xmlDom = oReq.responseText;
-                console.log(oReq);
-                load(xmlDom, url, kick.importer.ColladaImporter.import);
-            }
-        }
-    }
-    oReq.open("GET", url, true);
-    oReq.onreadystatechange = handler;
-    oReq.send();
-}
+var camera, scene, renderer, objects;
+var particleLight, pointLight;
+var dae, skin;
 
 
-function loadKickJSModelFromURL(url) {
-    var oReq = new XMLHttpRequest();
-    function handler() {
-        if (oReq.readyState === 4) { // complete
-            if (oReq.status === 200) {
-                var content = oReq.response;
-                loadKickJSModel(content);
-            }
-        }
-    }
-    oReq.open("GET", url, true);
-    oReq.responseType = "arraybuffer";
-    oReq.onreadystatechange = handler;
-    oReq.send();
-}
+this.setup_controls = function (camera) {
+    controls = new THREE.TrackballControls(camera);
+    controls.target.set( 0, 0, 0 );
 
-endsWith = function (str, search) {
-    var res = str.match(search + "$");
-    if (Array.isArray(res)){
-      res = res[0];
-    }
-    return (res === search);
+    controls.rotateSpeed = 1.0;
+    controls.zoomSpeed = 1.2;
+    controls.panSpeed = 1.0;
+
+    controls.noZoom = false;
+    controls.noPan = false;
+    controls.noRotate = false;
+
+    controls.staticMoving = true;
+    controls.dynamicDampingFactor = 0.15;
+
+    controls.keys = [ 65, 83, 68 ];
+    //controls.keys = [ 65, 83, 68 ];
+
+    controls.addEventListener( 'change', render );
 };
 
-function loadModelFile(file, rotateAroundX) {
-    var reader = new FileReader(),
-        fileName = file.fileName || file.name,
-        fileNameLowercase = fileName.toLowerCase(),
-        parser;
+this.setup_ground_grid = function() {
+    var size = 14, step = 1;
 
-    reader.onload = function (event) {
-        var fileContent = event.target.result;
+    var geometry = new THREE.Geometry();
+    var material = new THREE.LineBasicMaterial( { color: 0x3f3030 } );
 
-        if (endsWith(fileNameLowercase, ".obj")) {
-            load(fileContent, fileName, kick.importer.ObjImporter.import,rotateAroundX);
-        } else if (endsWith(fileNameLowercase, ".dae")) {
-            parser = new DOMParser();
-            load(parser.parseFromString(fileContent, "text/xml"), fileName, kick.importer.ColladaImporter.import,rotateAroundX);
-        } else if (endsWith(fileNameLowercase, ".kickjs")) {
-            loadKickJSModel(fileContent);
-        }
-    };
+    for ( var i = - size; i <= size; i += step ) {
 
-    reader.onerror = function () {
-        alert("Error reading file");
-    };
-    if (endsWith(fileNameLowercase, ".kickjs")) {
-        reader.readAsArrayBuffer(file);
-    } else {
-        reader.readAsText(file);
+        geometry.vertices.push( new THREE.Vector3( - size, - 0.04, i ) );
+        geometry.vertices.push( new THREE.Vector3(   size, - 0.04, i ) );
+
+        geometry.vertices.push( new THREE.Vector3( i, - 0.04, - size ) );
+        geometry.vertices.push( new THREE.Vector3( i, - 0.04,   size ) );
+
     }
-}
 
-function LightRotatorComponent() {
-    var thisObj = this,
-        transform,
-        rotationSensitivity = 1,
-        rotationEuler,
-        mouseInput;
-    this.activated = function () {
-        var gameObject = thisObj.gameObject,
-            engine = kick.core.Engine.instance;
-        transform = gameObject.transform;
-        rotationEuler = transform.localRotationEuler;
-        mouseInput = engine.mouseInput;
-    };
-
-    this.update = function () {
-        transform.localRotationEuler = rotationEuler;
-        if (mouseInput.isButton(2)) {
-            var mouseDelta = mouseInput.deltaMovement;
-            rotationEuler[1] += mouseDelta[0] * rotationSensitivity;
-            rotationEuler[0] += mouseDelta[1] * rotationSensitivity;
-            transform.localRotationEuler = rotationEuler;
-        }
-    };
-}
-
-
-var RotatorComponent = function(config){
-    var rotationEuler = [0,0,0],
-            thisObj = this;
-
-    this.rotationSpeed = config.rotationSpeed;
-
-    this.update = function(){
-        var gameObject = thisObj.gameObject,
-                transform = gameObject.transform,
-                time = kick.core.Engine.instance.time,
-                deltaTime = time.deltaTime;
-        rotationEuler[2] += deltaTime*thisObj.rotationSpeed;
-        transform.localRotationEuler = rotationEuler;
-    };
+    var line = new THREE.Line( geometry, material, THREE.LinePieces );
+    scene.add( line );
 };
 
-// init engine (create 3d context)
-var engine = new kick.core.Engine('canvas');
+this.setup_scene_lighting = function () {
+    scene.add( new THREE.AmbientLight( 0xcccccc ) );
 
-// create a game object in [0,0,0] facing down the -z axis
-var cameraObject = engine.activeScene.createGameObject();
-cameraObject.transform.position = [0,0,5];
-console.log(cameraObject.transform.rotation);
-console.log(cameraObject.transform.rotationEuler);
-cameraObject.transform.rotationEuler = [20, 0, 20];
-//cameraObject.transform.rotation = [0.4,0,0.1,1];
+    particleLight = new THREE.Mesh(new THREE.SphereGeometry( 4, 8, 8 ),
+                                   new THREE.MeshBasicMaterial( { color: 0xffffff } ) );
 
-// create a orthographic camera
-var camera = new kick.scene.Camera({
-    perspective: false,
-    left:30,
-    right:50,
-    top:50,
-    bottom:-50
-});
-cameraObject.addComponent(camera);
+    var directionalLight = new THREE.DirectionalLight(/*Math.random() * 0xffffff*/0xeeeeee );
+    directionalLight.position.x = 2;
+    directionalLight.position.y = 3;
+    directionalLight.position.z = 50;
+    directionalLight.position.normalize();
+    scene.add( directionalLight );
 
-// create material
-var shader = engine.project.load(engine.project.ENGINE_SHADER_UNLIT);
-var material = new kick.material.Material({
-    shader: shader
-});
-
-
-// create meshes
-var meshes = [engine.project.ENGINE_MESH_TRIANGLE, engine.project.ENGINE_MESH_CUBE];
-for (var i=0;i<meshes.length;i++){
-    var gameObject = engine.activeScene.createGameObject();
-    gameObject.transform.position = [-2.0+4*i,0,0];
-    var meshRenderer = new kick.scene.MeshRenderer();
-    meshRenderer.mesh = engine.project.load(meshes[i]);
-    meshRenderer.material = material;
-    gameObject.addComponent(meshRenderer);
-    var rotationSpeed = i-0.4;
-    gameObject.addComponent(new RotatorComponent({rotationSpeed:rotationSpeed}));
+    pointLight = new THREE.PointLight( 0xffffff, 4 );
+    pointLight.position = particleLight.position;
+    scene.add( pointLight );
+    //scene.add( particleLight );
 }
-loadCollada("untitled.dae");
-initLights();
-window.fullscreen = function(){
-    if (engine.isFullScreenSupported()){
-        engine.setFullscreen(true);
-    } else {
-        alert("Fullscreen is not supported in this browser");
+
+this.setup_renderer = function() {
+    renderer = new THREE.WebGLRenderer();
+    renderer.setSize( window.innerWidth, window.innerHeight );
+
+    container.appendChild( renderer.domElement );
+}
+
+this.setup_stats = function() {
+    stats = new Stats();
+    stats.domElement.style.position = 'absolute';
+    container.appendChild( stats.domElement );
+};
+
+this.load_model = function (model_url) {
+    var loader = new THREE.ColladaLoader();
+    loader.options.convertUpAxis = true;
+    loader.load(model_url, this.setup_model);
+}
+
+this.setup_model = function(model) {
+    dae = model.scene;
+    skin = model.skins[ 0 ];
+
+    dae.scale.x = dae.scale.y = dae.scale.z = 0.202;
+    dae.position.x = -8;
+    dae.rotation.x = 1.56;
+    dae.updateMatrix();
+
+    // Add the COLLADA
+    scene.add( dae );
+}
+
+function init() {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+
+    scene = new THREE.Scene();
+
+    camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
+    //camera.position.set( 2, 10, 10 );
+    camera.position.set(-1.22, 10.61, 14.11);
+
+
+    this.setup_controls(camera);
+    this.setup_ground_grid();
+    this.setup_scene_lighting()
+    this.setup_stats();
+    this.setup_renderer()
+
+    window.addEventListener( 'resize', onWindowResize, false );
+
+    this.load_model('untitled.dae');
+
+    animate();
+}
+
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+
+    renderer.setSize( window.innerWidth, window.innerHeight );
+}
+
+var t = 0;
+var clock = new THREE.Clock();
+
+function animate() {
+    var delta = clock.getDelta();
+
+    requestAnimationFrame( animate );
+
+    if ( t > 1 ) t = 0;
+
+    if ( skin ) {
+        // guess this can be done smarter...
+
+        // (Indeed, there are way more frames than needed and interpolation is not used at all
+        //  could be something like - one morph per each skinning pose keyframe, or even less,
+        //  animation could be resampled, morphing interpolation handles sparse keyframes quite well.
+        //  Simple animation cycles like this look ok with 10-15 frames instead of 100 ;)
+
+        for ( var i = 0; i < skin.morphTargetInfluences.length; i++ ) {
+            skin.morphTargetInfluences[ i ] = 0;
+        }
+
+        skin.morphTargetInfluences[ Math.floor( t * 30 ) ] = 1;
+
+        t += delta;
     }
+
+    stats.update();
+    controls.update();
+    render();
 }
+
+function render() {
+    var timer = Date.now() * 0.0005;
+
+    //camera.position.x = Math.cos( timer ) * 10;
+    //camera.position.y = 2;
+    //camera.position.z = Math.sin( timer ) * 10;
+
+    camera.lookAt( scene.position );
+
+    //particleLight.position.x = Math.sin( timer * 4 ) * 3009;
+    //particleLight.position.y = Math.cos( timer * 5 ) * 4000;
+    //particleLight.position.z = Math.cos( timer * 4 ) * 3009;
+
+    renderer.render(scene, camera);
+}
+
+init();
+
 });

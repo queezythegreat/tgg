@@ -1,0 +1,34 @@
+body {
+    font-family: Monospace;
+    background-image: url("http://thegeekgroup.org/wp-content/themes/serpent/lib/images/pattern/pattern.dots.png");
+    margin: 0px;
+    padding: 0px;
+    overflow: hidden;
+}
+
+#info {
+    color: #fff;
+    position: absolute;
+    top: 10px;
+    width: 100%;
+    text-align: center;
+    z-index: 100;
+    display:block;
+}
+
+a { color: skyblue }
+
+#stats {
+    z-index: 999;
+    top: 12px;
+}
+#title {
+    top: 0px;
+    margin: 0px;
+    position: absolute;
+    width: 100%;
+    display: block;
+    background-color: white;
+    color: black;
+    font-weight: bold;
+}
