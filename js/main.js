@@ -2,6 +2,12 @@ require.config({
     paths: {
         three: 'three'
     },
+    shims: {
+         'three/Detector':                    ['three/three.min'],
+         'three/libs/stats.min':              ['three/three.min'],
+         'three/loaders/ColladaLoader':       ['three/three.min'],
+         'three/controls/TrackballControls':  ['three/three.min'],
+    },
 });
 
 require(['three/three.min',
