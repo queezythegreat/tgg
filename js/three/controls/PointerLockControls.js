@@ -18,6 +18,11 @@ THREE.PointerLockControls = function ( camera ) {
 	var moveLeft = false;
 	var moveRight = false;
 
+	this.canMoveForward = true;
+	this.canMoveBackward = true;
+	this.canMoveLeft = true;
+	this.canMoveRight = true;
+
 	var isOnObject = false;
 	var canJump = false;
 
@@ -111,6 +116,10 @@ THREE.PointerLockControls = function ( camera ) {
 
 	};
 
+    this.getPitch = function () {
+        return pitchObject;
+    };
+
 	this.isOnObject = function ( boolean ) {
 
 		isOnObject = boolean;
@@ -129,11 +138,11 @@ THREE.PointerLockControls = function ( camera ) {
 
 		velocity.y -= 0.25 * delta;
 
-		if ( moveForward ) velocity.z -= 0.12 * delta;
-		if ( moveBackward ) velocity.z += 0.12 * delta;
+		if ( moveForward && this.canMoveBackward) velocity.z -= 0.12 * delta;
+		if ( moveBackward && this.canMoveBackward) velocity.z += 0.12 * delta;
 
-		if ( moveLeft ) velocity.x -= 0.12 * delta;
-		if ( moveRight ) velocity.x += 0.12 * delta;
+		if ( moveLeft && this.canMoveLeft) velocity.x -= 0.12 * delta;
+		if ( moveRight && this.canMoveRight) velocity.x += 0.12 * delta;
 
 		if ( isOnObject === true ) {
 
