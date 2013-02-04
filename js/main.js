@@ -141,11 +141,11 @@ require(['three/three.min',
         controls = new THREE.FPSControls(camera);
 
         controls.setup_pointer_lock('blocker', 'instructions');
-        controls.movement_speed = 0.3;
-        controls.mouse_sensitivity = 0.01;
-        controls.field_of_view = Math.PI/4;
-        controls.gravity = 20;
-        controls.objects.push(plane);
+        //controls.movement_speed = 0.3;
+        //controls.mouse_sensitivity = 0.01;
+        //controls.field_of_view = Math.PI/4;
+        //controls.gravity = 20;
+        //controls.objects.push(plane);
 
         scene.add(controls.getObject());
     }
