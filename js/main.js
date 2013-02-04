@@ -148,50 +148,58 @@ this.setup_pointer_controls = function() {
 
 }
 
+function draw_line(origin, direction, color) {
+    var origin_offset = new THREE.Vector3();
+    origin_offset.copy(origin);
+    origin_offset.y -= 8;
+    var line_color = new THREE.LineBasicMaterial({color: color});
+
+    var line_geometry = new THREE.Geometry();
+    line_geometry.vertices.push(origin_offset);
+
+    var point = new THREE.Vector3();
+    point.addVectors(origin_offset, direction)
+    line_geometry.vertices.push(point);
+
+    scene.add(new THREE.Line(line_geometry, line_color));
+}
 var timmer = Date.now();
+var y_axis = new THREE.Vector3(0, 1, 0);
+
 function create_rays(camera_location, pitch) {
     var rays = {
-        up:        new THREE.Raycaster(),
-        down:      new THREE.Raycaster(),
-        left:      new THREE.Raycaster(),
-        right:     new THREE.Raycaster(),
-        forward:   new THREE.Raycaster(),
-        backward:  new THREE.Raycaster(),
+        up:       new THREE.Raycaster(camera_location.position, new THREE.Vector3( 0,  1,  0)),
+        down:     new THREE.Raycaster(camera_location.position, new THREE.Vector3( 0, -1,  0)),
+        forward:  new THREE.Raycaster(camera_location.position, new THREE.Vector3( 0,  0, -1)),
+        left:     new THREE.Raycaster(camera_location.position, new THREE.Vector3(-1,  0,  0)),
+        right:    new THREE.Raycaster(camera_location.position, new THREE.Vector3( 1,  0,  0)),
+        backward: new THREE.Raycaster(camera_location.position, new THREE.Vector3( 0,  0,  1)),
     };
-    rays.up.ray.direction.set( 0,    1,  0);
-    rays.down.ray.direction.set( 0, -1,  0);
 
-    rays.left.ray.direction.set( 1,  0,  0);
-    rays.right.ray.direction.set(-1,  0,  0);
+    /**
+    rotate_vector(rays.forward.ray.direction,     y_axis,  camera_location.rotation.y);
 
-    rays.forward.ray.direction.set( 0,  0,  1);
-    rays.backward.ray.direction.set( 0,  0, -1);
-
-
-    var y_axis = new THREE.Vector3(0, 1, 0);
-    //var line_color = new THREE.LineBasicMaterial({color: 0x0000ff});
-    for (var key in rays) {
-        rays[key].ray.origin.copy(camera_location.position);
-        //rays[key].ray.origin.y -= 1;
-        
-        if (key === "up" || key == "down")
-            continue;
-        
-        rotate_vector(rays[key].ray.direction, y_axis, camera_location.rotation.y);
+    rays.backward.ray.direction.set(-rays.forward.ray.direction.x, 0, -rays.forward.ray.direction.z);
+    rays.left.ray.direction.set(-rays.forward.ray.direction.z, 0, -rays.forward.ray.direction.x);
+    rays.right.ray.direction.set(rays.forward.ray.direction.z, 0,  rays.forward.ray.direction.x);
+    **/
 
 
-        /**
-        if (Date.now() - timmer > 1) {
-            var line_geometry = new THREE.Geometry();
-            line_geometry.vertices.push(rays[key].ray.origin);
-            var direction = new THREE.Vector3();
-            direction.addVectors(rays[key].ray.origin, rays[key].ray.direction)
-            line_geometry.vertices.push(direction);
-            scene.add(new THREE.Line(line_geometry, line_color));
+    rotate_vector(rays.forward.ray.direction,  y_axis,  camera_location.rotation.y);
+    rotate_vector(rays.left.ray.direction,     y_axis,  camera_location.rotation.y);
+    rotate_vector(rays.right.ray.direction,    y_axis,  camera_location.rotation.y);
+    rotate_vector(rays.backward.ray.direction, y_axis,  camera_location.rotation.y);
 
-            timmer = Date.now();
-        }
-        **/
+    //rays.right.ray.direction.set(-rays.left.ray.direction.z, rays.left.ray.direction.y, -rays.left.ray.direction.x)
+    //rays.backward.ray.direction.set(-rays.forward.ray.direction.z, rays.forward.ray.direction.y, -rays.forward.ray.direction.x)
+
+    if (Date.now() - timmer > 2000) {
+        draw_line(rays['forward'].ray.origin,  rays['forward'].ray.direction,  0x000000); //black
+        draw_line(rays['left'].ray.origin,     rays['left'].ray.direction,     0x336699); //blue
+        draw_line(rays['right'].ray.origin,    rays['right'].ray.direction,    0xffcc00); //yellow
+        draw_line(rays['backward'].ray.origin, rays['backward'].ray.direction, 0xff0000); //red
+        console.log(rays['forward'].ray.direction)
+        console.log(rays['backward'].ray.direction)
     }
 
     return rays;
@@ -210,6 +218,7 @@ this.setup_scene = function() {
     camera.position.set(0, 0, 0);
     //camera.position.set(58.90, 275.27, 974.96);
 }
+
 function init() {
     this.setup_scene();
 
@@ -331,14 +340,14 @@ function update_pointer_controls() {
 
         var rays = create_rays(controls.getObject(), controls.getPitch());
 
+        controls.canMoveForward  = !does_intersect(objects, rays.forward,  0, 20);
         controls.canMoveLeft     = !does_intersect(objects, rays.left,     0, 20);
         controls.canMoveRight    = !does_intersect(objects, rays.right,    0, 20);
-        controls.canMoveForward  = !does_intersect(objects, rays.forward,  0, 20);
         controls.canMoveBackward = !does_intersect(objects, rays.backward, 0, 20);
 
         controls.isOnObject(does_intersect(objects, rays.down, 0, 10));
 
-        /**
+    if (Date.now() - timmer > 2000) {
         if (!controls.canMoveLeft)
             console.log('Collision: Left');
         if (!controls.canMoveRight)
@@ -347,7 +356,7 @@ function update_pointer_controls() {
             console.log('Collision: Forward');
         if (!controls.canMoveBackward)
             console.log('Collision: Backward');
-        **/
+    }
 
 
 
@@ -371,6 +380,9 @@ this.animate = function () {
     //controls.update();
     //controls.update( clock.getDelta() );
     render();
+    if (Date.now() - timmer > 2000) {
+        timmer = Date.now();
+    }
 }
 
 
