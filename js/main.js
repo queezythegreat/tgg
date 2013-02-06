@@ -6,6 +6,7 @@ require.config({
          'three/Detector':                     ['three/three.min'],
          'three/libs/stats.min':               ['three/three.min'],
          'three/loaders/ColladaLoader':        ['three/three.min'],
+         'three/controls/RollControls':        ['three/three.min'],
          'FPSControls':                        ['three/three.min'],
     },
 });
@@ -14,6 +15,7 @@ require(['three/three.min',
          'three/Detector',
          'three/libs/stats.min',
          'three/loaders/ColladaLoader',
+         'three/controls/RollControls',
          'FPSControls'], function () {
 
     if (!Detector.webgl)
@@ -31,15 +33,24 @@ require(['three/three.min',
         this.setup_scene();
         this.setup_ground_plane();
 
-        this.setup_fps_controls();
+        //camera.position.set(58.90, 700.27, 600.96);
+        camera.position.set(23.23, 59.54, 357.033)
+
+        //this.setup_fps_controls();
 
         this.setup_scene_lighting()
         this.setup_stats();
         this.setup_renderer()
 
-        this.load_model('untitled.dae');
+        controls = new THREE.RollControls( camera );
 
-        controls.getObject().position.set(58.90, 700.27, 600.96);
+        controls.movementSpeed = 100;
+        controls.lookSpeed = 2;
+        controls.constrainVertical = [ -0.9, 0.9 ];
+
+        this.load_model('untitled2.dae');
+
+        //controls.getObject().position.set(58.90, 700.27, 600.96);
         animate();
     }
 
@@ -118,15 +129,15 @@ require(['three/three.min',
         skin = model.skins[ 0 ];
 
         dae.scale.x = dae.scale.y = dae.scale.z = 10;
-        dae.position.x = -400;
-        dae.rotation.x = 1.56;
+        //dae.position.x = -400;
+        //dae.rotation.x = 1.56;
         dae.updateMatrix();
         dae.castShadow = true;
         dae.receiveShadow = true;
         console.log(model);
 
-        ass = dae.getChildByName("Assem1");
-        ass.material = new THREE.MeshLambertMaterial( { color: 0xd4d0c8 } );
+        ass = dae.getChildByName("tgg_basement");
+        //ass.material = new THREE.MeshLambertMaterial( { color: 0xd4d0c8 } );
         ass.castShadow = true;
         ass.receiveShadow = true;
         console.log(ass);
@@ -134,7 +145,7 @@ require(['three/three.min',
         // Add the COLLADA
         scene.add( dae );
 
-        controls.objects.push(ass);
+        //controls.objects.push(ass);
     }
 
     this.setup_fps_controls = function() {
@@ -146,6 +157,7 @@ require(['three/three.min',
         //controls.field_of_view = Math.PI/4;
         //controls.gravity = 20;
         //controls.objects.push(plane);
+        //controls.collision_detection = false;
 
         scene.add(controls.getObject());
     }

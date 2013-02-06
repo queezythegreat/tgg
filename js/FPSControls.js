@@ -11,6 +11,7 @@ THREE.FPSControls = function ( camera ) {
     this.has_ground = true;
     this.ground_offset = 10;
     this.wall_offset = 20;
+    this.collision_detection = true;
 
     this.movement_speed = 0.12;       // Movement speed
     this.mouse_sensitivity = 0.002;   // Mouse movement speed
@@ -40,10 +41,12 @@ THREE.FPSControls = function ( camera ) {
 	var moveLeft = false;
 	var moveRight = false;
 
-	var canMoveForward = true;
-	var canMoveBackward = true;
-	var canMoveLeft = true;
-	var canMoveRight = true;
+	var maxMoveForward = this.wall_offset;
+	var maxMoveBackward = this.wall_offset;
+	var maxMoveLeft =  this.wall_offset;
+	var maxMoveRight = this.wall_offset;
+
+    var direction_change = false;
 
 	var isOnObject = false;
 	var canJump = false;
@@ -150,6 +153,14 @@ THREE.FPSControls = function ( camera ) {
         rotate_vector(collision_rays.backward.ray.direction, y_axis,  angle);
     }
 
+    function get_intersect(objects, ray) {
+        var intersections = ray.intersectObjects(objects);
+        if (intersections.length > 0) {
+          return intersections[0].distance;
+        }
+        return 0;
+    }
+
     function does_intersect(objects, ray, min, max) {
         var intersections = ray.intersectObjects(objects);
         if (intersections.length > 0) {
@@ -179,7 +190,10 @@ THREE.FPSControls = function ( camera ) {
 		yawObject.rotation.y += movement_y_delta;
 		pitchObject.rotation.x += movement_x_delta;
 
-        update_collision_rays(movement_y_delta);
+        if (scope.collision_detection) {
+            direction_change = true;
+            update_collision_rays(movement_y_delta);
+        }
 
 		pitchObject.rotation.x = Math.max(-scope.field_of_view, Math.min(scope.field_of_view, pitchObject.rotation.x));
 	};
@@ -198,6 +212,7 @@ THREE.FPSControls = function ( camera ) {
                 velocity.y += scope.gravity;
             canJump = false;
         }
+        direction_change = true;
 	};
 
 	var onKeyUp = function ( event ) {
@@ -210,6 +225,7 @@ THREE.FPSControls = function ( camera ) {
         } else if (scope.key_mapping.backward.indexOf(event.keyCode) > -1) {
             moveBackward = false;
         }
+        direction_change = true;
 	};
 
 	document.addEventListener('mousemove', onMouseMove, false);
@@ -230,18 +246,28 @@ THREE.FPSControls = function ( camera ) {
 		canJump = boolean;
 	};
 
+    var count = 0;
 	this.update = function ( delta ) {
         delta = delta * 1000;
 
 		if (scope.enabled === false)
             return;
 
-        canMoveForward  = !does_intersect(this.objects, collision_rays.forward,  0, scope.wall_offset);
-        canMoveLeft     = !does_intersect(this.objects, collision_rays.left,     0, scope.wall_offset);
-        canMoveRight    = !does_intersect(this.objects, collision_rays.right,    0, scope.wall_offset);
-        canMoveBackward = !does_intersect(this.objects, collision_rays.backward, 0, scope.wall_offset);
 
-        this.isOnObject(does_intersect(this.objects, collision_rays.down, 0, scope.ground_offset));
+        if (scope.collision_detection) {
+            if (moveForward)
+                canMoveForward  = !does_intersect(this.objects, collision_rays.forward, 0, scope.wall_offset);
+            if (moveLeft)
+                canMoveLeft     = !does_intersect(this.objects, collision_rays.left, 0, scope.wall_offset);
+            if (moveRight)
+                canMoveRight    = !does_intersect(this.objects, collision_rays.right, 0, scope.wall_offset);
+            if (moveBackward)
+                canMoveBackward = !does_intersect(this.objects, collision_rays.backward, 0, scope.wall_offset);
+
+            if (!canJump)
+                this.isOnObject(does_intersect(this.objects, collision_rays.down, 0, scope.ground_offset));
+            direction_change = false;
+        }
 
         //TODO: Fix velocity when collision 
 
@@ -252,13 +278,22 @@ THREE.FPSControls = function ( camera ) {
 
 		velocity.y -= 0.25 * delta;
 
-		if (moveForward  && canMoveForward)  velocity.z -= scope.movement_speed * delta;
-		if (moveBackward && canMoveBackward) velocity.z += scope.movement_speed * delta;
+        var movement_delta =  scope.movement_speed * delta;
+		if (moveForward  && canMoveForward) {
+            velocity.z -= movement_delta;
+        }
+		if (moveBackward && canMoveBackward) {
+            velocity.z += movement_delta;
+        }
 
-		if (moveLeft  && canMoveLeft)  velocity.x -= scope.movement_speed * delta;
-		if (moveRight && canMoveRight) velocity.x += scope.movement_speed * delta;
+		if (moveLeft  && canMoveLeft) {
+            velocity.x -= movement_delta;
+        }
+		if (moveRight && canMoveRight) {
+            velocity.x += movement_delta;
+        }
 
-		if ( isOnObject === true ) {
+		if (isOnObject === true) {
 			velocity.y = Math.max(0, velocity.y);
 		}
 
@@ -272,5 +307,6 @@ THREE.FPSControls = function ( camera ) {
 
 			canJump = true;
 		}
+        count++;
 	};
 };
