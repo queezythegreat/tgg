@@ -11,6 +11,7 @@ require.config({
     },
 });
 var camera;
+var scene;
 require(['three/three.min',
          'three/Detector',
          'three/libs/stats.min',
@@ -23,7 +24,7 @@ require(['three/three.min',
 
     var container, stats;
 
-    var scene, renderer
+    var renderer
     var plane;
     var particleLight, pointLight;
     var dae, skin;
@@ -34,23 +35,24 @@ require(['three/three.min',
         this.setup_ground_plane();
 
         //camera.position.set(58.90, 700.27, 600.96);
-        camera.position.set(23.23, 59.54, 357.033)
+        //camera.position.set(23.23, 59.54, 357.033)
 
-        //this.setup_fps_controls();
+        this.setup_fps_controls();
 
         this.setup_scene_lighting()
         this.setup_stats();
         this.setup_renderer()
 
-        controls = new THREE.RollControls( camera );
+        //controls = new THREE.RollControls( camera );
 
-        controls.movementSpeed = 100;
-        controls.lookSpeed = 2;
-        controls.constrainVertical = [ -0.9, 0.9 ];
+        //controls.movementSpeed = 100;
+        //controls.lookSpeed = 2;
+        //controls.constrainVertical = [ -0.9, 0.9 ];
 
         this.load_model('untitled2.dae');
+        //this.load_model_json('untitled.js');
 
-        //controls.getObject().position.set(58.90, 700.27, 600.96);
+        controls.getObject().position.set(58.90, 700.27, 600.96);
         animate();
     }
 
@@ -84,10 +86,11 @@ require(['three/three.min',
         light_model = new THREE.Mesh(new THREE.SphereGeometry( 0.5, 8, 8 ),
                                        new THREE.MeshBasicMaterial( { color: 0x000000 } ) );
 
-        light = new THREE.SpotLight( 0xffffff, 1.5 );
-        light.position.set( 600, 600, 800);
+        light = new THREE.SpotLight( 0xffffff, 0.000 );
+        light.position.set( 1, 1, 1);
         light.castShadow = true;
 
+        /**
         light.shadowCameraNear = 0;
         light.shadowCameraFar = camera.far;
         light.shadowCameraFov = 70;
@@ -96,15 +99,17 @@ require(['three/three.min',
         light.shadowMapWidth = 2048;
         light.shadowMapHeight = 2048;
         light_model.position = light.position;
+        **/
 
         scene.add(light); 
-        scene.add(light_model);
+        //scene.add(light_model);
     }
 
     this.setup_renderer = function() {
         renderer = new THREE.WebGLRenderer();
         renderer.setSize( window.innerWidth, window.innerHeight );
         renderer.shadowMapEnabled = true;
+        renderer.shadowMapSoft = true;
         renderer.shadowMapType = THREE.PCFShaddowMap;
 
         container.appendChild( renderer.domElement );
@@ -120,8 +125,22 @@ require(['three/three.min',
 
     this.load_model = function (model_url) {
         var loader = new THREE.ColladaLoader();
-        loader.options.convertUpAxis = true;
+        //loader.options.convertUpAxis = true;
         loader.load(model_url, this.setup_model);
+    }
+
+    this.load_model_json = function (model_url) {
+        var loader = new THREE.JSONLoader();
+        loader.load(model_url, this.setup_model_json);
+    }
+
+    this.setup_model_json = function(geometry, materials) {
+        console.log(geometry);
+        console.log(materials);
+        var material = new THREE.MeshFaceMaterial(materials);
+        var model = new THREE.MorphAnimMesh(geometry, material);
+
+        scene.add(model);
     }
 
     this.setup_model = function(model) {
@@ -131,6 +150,7 @@ require(['three/three.min',
         dae.scale.x = dae.scale.y = dae.scale.z = 10;
         //dae.position.x = -400;
         //dae.rotation.x = 1.56;
+        dae.rotation.x = -Math.PI/2;
         dae.updateMatrix();
         dae.castShadow = true;
         dae.receiveShadow = true;
@@ -145,7 +165,7 @@ require(['three/three.min',
         // Add the COLLADA
         scene.add( dae );
 
-        //controls.objects.push(ass);
+        controls.objects.push(ass);
     }
 
     this.setup_fps_controls = function() {

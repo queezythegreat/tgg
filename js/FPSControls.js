@@ -64,8 +64,14 @@ THREE.FPSControls = function ( camera ) {
     };
 
     this.setup_pointer_lock = function (blocker_id, instructions_id) {
-        var blocker = document.getElementById(blocker_id);
-        var instructions = document.getElementById(instructions_id);
+        var blocker = document.createElement("div");
+        blocker.setAttribute('id', blocker_id);
+        var instructions = document.createElement("div");
+        instructions.setAttribute('id', instructions_id);
+        instructions.innerHTML = '<span style="font-size:40px">Click to play</span>(W, A, S, D = Move, SPACE = Jump, MOUSE = Look around)'
+
+        blocker.appendChild(instructions);
+        document.body.appendChild(blocker);
 
         // http://www.html5rocks.com/en/tutorials/pointerlock/intro/
 
@@ -255,16 +261,18 @@ THREE.FPSControls = function ( camera ) {
 
 
         if (scope.collision_detection) {
-            if (moveForward)
+            //if (moveForward)
                 canMoveForward  = !does_intersect(this.objects, collision_rays.forward, 0, scope.wall_offset);
-            if (moveLeft)
+            //if (moveLeft)
                 canMoveLeft     = !does_intersect(this.objects, collision_rays.left, 0, scope.wall_offset);
-            if (moveRight)
+            //if (moveRight)
                 canMoveRight    = !does_intersect(this.objects, collision_rays.right, 0, scope.wall_offset);
-            if (moveBackward)
+            //if (moveBackward)
                 canMoveBackward = !does_intersect(this.objects, collision_rays.backward, 0, scope.wall_offset);
 
-            if (!canJump)
+            canMoveUp = get_intersect(this.objects, collision_rays.up);
+
+            //if (!canJump)
                 this.isOnObject(does_intersect(this.objects, collision_rays.down, 0, scope.ground_offset));
             direction_change = false;
         }
@@ -276,7 +284,6 @@ THREE.FPSControls = function ( camera ) {
 		velocity.x += ( - velocity.x ) * 0.08 * delta;
 		velocity.z += ( - velocity.z ) * 0.08 * delta;
 
-		velocity.y -= 0.25 * delta;
 
         var movement_delta =  scope.movement_speed * delta;
 		if (moveForward  && canMoveForward) {
@@ -292,6 +299,14 @@ THREE.FPSControls = function ( camera ) {
 		if (moveRight && canMoveRight) {
             velocity.x += movement_delta;
         }
+
+        velocity.y -= 0.25 * delta;
+        
+        if (canMoveUp > 0 && velocity.y > canMoveUp)
+            velocity.y = canMoveUp-2
+        //if (canMoveUp>0 && canMoveUp<10)
+	    //		velocity.y = Math.max(velocity.y, yawObject.position.y+canMoveUp);
+
 
 		if (isOnObject === true) {
 			velocity.y = Math.max(0, velocity.y);

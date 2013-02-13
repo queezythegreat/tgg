@@ -5,8 +5,8 @@
       <author>Blender User</author>
       <authoring_tool>Blender 2.65.0 r53189</authoring_tool>
     </contributor>
-    <created>2013-02-06T20:29:29</created>
-    <modified>2013-02-06T20:29:29</modified>
+    <created>2013-02-10T06:52:42</created>
+    <modified>2013-02-10T06:52:42</modified>
     <unit name="meter" meter="1"/>
     <up_axis>Z_UP</up_axis>
   </asset>
@@ -28,7 +28,7 @@
     <light id="Lamp-light" name="Lamp">
       <technique_common>
         <directional>
-          <color sid="color">0.2600001 0.2600001 0.2600001</color>
+          <color sid="color">0.6600001 0.6600001 0.6600001</color>
         </directional>
       </technique_common>
       <extra>
@@ -54,7 +54,7 @@
           <clipsta>1.000799</clipsta>
           <compressthresh>0.04999995</compressthresh>
           <dist sid="blender_dist">29.99998</dist>
-          <energy sid="blender_energy">0.2600001</energy>
+          <energy sid="blender_energy">0.6600001</energy>
           <falloff_type>2</falloff_type>
           <filtertype>0</filtertype>
           <flag>0</flag>
@@ -91,11 +91,16 @@
         </technique>
       </extra>
     </light>
-    <light id="Hemi-light" name="Hemi">
+    <light id="Point-light" name="Point">
       <technique_common>
-        <ambient>
-          <color>1 1 1</color>
-        </ambient>
+        <spot>
+          <color sid="color">1 1 1</color>
+          <constant_attenuation>1</constant_attenuation>
+          <linear_attenuation>0</linear_attenuation>
+          <quadratic_attenuation>0.001599967</quadratic_attenuation>
+          <falloff_angle sid="fall_off_angle">45</falloff_angle>
+          <falloff_exponent sid="fall_off_exponent">0.15</falloff_exponent>
+        </spot>
       </technique_common>
       <extra>
         <technique profile="blender">
@@ -128,7 +133,7 @@
           <green>1</green>
           <halo_intensity sid="blnder_halo_intensity">1</halo_intensity>
           <horizon_brightness>1</horizon_brightness>
-          <mode>1</mode>
+          <mode>8193</mode>
           <ray_samp>1</ray_samp>
           <ray_samp_method>1</ray_samp_method>
           <ray_samp_type>0</ray_samp_type>
@@ -153,7 +158,7 @@
           <sun_effect_type>0</sun_effect_type>
           <sun_intensity>1</sun_intensity>
           <sun_size>1</sun_size>
-          <type>3</type>
+          <type>2</type>
         </technique>
       </extra>
     </light>
@@ -206,7 +211,7 @@
         <instance_camera url="#Camera-camera"/>
       </node>
       <node id="Lamp" name="Lamp" type="NODE">
-        <translate sid="location">-38.13909 -49.68945 67.25085</translate>
+        <translate sid="location">-43.71462 -13.09898 24.73381</translate>
         <rotate sid="rotationZ">0 0 1 -61.65302</rotate>
         <rotate sid="rotationY">0 1 0 13.59629</rotate>
         <rotate sid="rotationX">1 0 0 42.84133</rotate>
@@ -221,13 +226,13 @@
         <scale sid="scale">1 1 1</scale>
         <instance_geometry url="#tgg_basement-mesh"/>
       </node>
-      <node id="Hemi" name="Hemi" type="NODE">
-        <translate sid="location">0.6820295 -10.97566 5.283912</translate>
+      <node id="Point" name="Point" type="NODE">
+        <translate sid="location">-9.575818 -17.71598 4.124245</translate>
         <rotate sid="rotationZ">0 0 1 0</rotate>
         <rotate sid="rotationY">0 1 0 0</rotate>
         <rotate sid="rotationX">1 0 0 0</rotate>
         <scale sid="scale">1 1 1</scale>
-        <instance_light url="#Hemi-light"/>
+        <instance_light url="#Point-light"/>
       </node>
     </visual_scene>
   </library_visual_scenes>
